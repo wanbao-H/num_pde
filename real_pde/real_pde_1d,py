@@ -1,0 +1,54 @@
+import numpy as np
+from scipy.sparse.linalg import spsolve
+# import ipdb
+import matplotlib.pyplot as plt
+from PDE_Data_1d import PDE_Data
+from fealpy.mesh import UniformMesh1d
+from scipy.sparse import diags
+from apply_dirichlet_neumann_bc import  redefian_apply_dirichlet_bc
+from apply_dirichlet_neumann_bc import apply_neumann_bc
+import scipy.sparse as sp
+
+def Backward_differention_operator(NN,hx):
+    """
+    @brief 生成向后差分离散代数部分
+    """
+    data = -np.ones(NN-1)
+    index = np.arange(NN-1)
+    count = np.append(0,np.arange(NN))
+    D = diags([1/hx], [0], shape=(NN, NN), format='csr') + (1/hx)*sp.csr_matrix((data,index,count),shape = (NN,NN))
+    return D
+
+
+nx = 100000
+pde = PDE_Data()
+
+domain = pde.domain()
+hx = (domain[1]- domain[0]) / nx
+mesh = UniformMesh1d([0, nx], h=hx, origin=domain[0])
+#isBdNode = mesh.ds.boundary_node_flag()
+
+uh = mesh.function('node')
+NN = mesh.number_of_nodes()
+#组装右端项
+f = np.zeros((NN,1))
+#f[0] = pde.source(0,0)
+f[1] = pde.source(1,1)
+
+# 处理dirichlet边界
+A = - 5*mesh.laplace_operator() + diags([0.001], [0], shape=(NN, NN), format='csr')
+A += Backward_differention_operator(NN,hx)
+A, f = redefian_apply_dirichlet_bc(mesh,pde.dirichlet, A, f, uh=uh)
+
+# 处理neumann边界
+A, f = apply_neumann_bc(mesh,pde.neumann, A, f, uh=uh)
+
+uh[:] = spsolve(A, f)
+
+fig = plt.figure()
+axes = fig.gca()
+mesh.show_function(axes,uh)
+print(uh)
+plt.show()
+
+
