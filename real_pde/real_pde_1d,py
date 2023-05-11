@@ -50,5 +50,5 @@ axes = fig.gca()
 mesh.show_function(axes,uh)
 print(uh)
 plt.show()
-
+plt.savefig("./")
 
