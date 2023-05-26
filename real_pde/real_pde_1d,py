@@ -20,7 +20,7 @@ def Backward_differention_operator(NN,hx):
     return D
 
 
-nx = 100000
+nx = 10000
 pde = PDE_Data()
 
 domain = pde.domain()
@@ -50,5 +50,4 @@ axes = fig.gca()
 mesh.show_function(axes,uh)
 print(uh)
 plt.show()
-plt.savefig("./")
 
