@@ -3,7 +3,7 @@ from typing import Union, Tuple, List
 from fealpy.mesh import UniformMesh1d
 import matplotlib.pyplot as plt
 from scipy.sparse import spdiags
-from scipy.sparse import diags
+from scipy.sparse import diags, csr_matrix
 import scipy.sparse as sp
 
 # from real_pde.apply_dirichlet_neumann_bc import redefian_apply_dirichlet_bc
@@ -42,12 +42,34 @@ class PdeData:
         
         return -2 
     
+def hyperbolic_lax_wendroff(a, tau):
+    """
+    @brief Lax-Wendroff 格式
+    """
+    r = a*tau/hx
+
+    if r > 1.0:
+        raise ValueError(f"The r: {r} should be smaller than 0.5")
+
+    NN = mesh.number_of_nodes()
+    k = np.arange(NN)
+
+    A = diags([1 - r**2], [0], shape=(NN, NN), format='csr')
+    val0 = np.broadcast_to(-r/2 + r**2/2, (NN-1, ))
+    val1 = np.broadcast_to(r/2 + r**2/2, (NN-1, ))
+    I = k[1:]
+    J = k[0:-1]
+    A += sp.csr_matrix((val0, (I, J)), shape=(NN, NN), dtype=mesh.ftype)
+    A += sp.csr_matrix((val1, (J, I)), shape=(NN, NN), dtype=mesh.ftype)
+
+    return A
+
 pde = PdeData()
 # pde = Hyperbolic1dPDEData()
 domain = pde.domain()
 duration = pde.duration()
 
-nx = 80
+nx = 800
 hx = (domain[1]-domain[0])/nx
 
 nt = 6400
@@ -78,18 +100,19 @@ def hyperbolic_lax(n):
         count = np.arange(NN+1)
         count[-1] = count[-2]
         A += 0.5 * (r**2 - r)*sp.csr_matrix((data,index,count),shape = (NN,NN))
+        # A = hyperbolic_lax_wendroff(pde.a(), tau)
 
 
         uh_0 = uh0[0] + 2*tau/hx*(uh0[1] - uh0[0])
-        uh0[0] = uh0[1] # b
+        # uh0[0] = uh0[1] # b
         uh0[:] = A@uh0
        
 
-        # gD = lambda p: pde.dirichlet(p,t)
-        # mesh.update_dirichlet_bc(gD, uh0)
+        gD = lambda p: pde.dirichlet(p,t)
+        mesh.update_dirichlet_bc(gD, uh0)
         # uh0[0] = uh_0 # a
 
-        # uh0[0] = 2*uh0[1] - uh0[2] # c
+        uh0[0] = 2*uh0[1] - uh0[2] # c
 
 
         solution = lambda p: pde.solution(p,t)
