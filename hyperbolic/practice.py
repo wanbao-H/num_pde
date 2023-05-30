@@ -90,7 +90,6 @@ def hyperbolic_lax(n):
     else:
         r = pde.a() * tau / hx
         NN = mesh.number_of_nodes()
-        # A = mesh.hyperbolic_operator_lax_wendroff(pde.a(), tau)
         A = diags([1- r**2], [0], shape = (NN, NN), format='csr')
         data = np.ones(NN-1)
         index = np.arange(NN-1)
@@ -101,6 +100,7 @@ def hyperbolic_lax(n):
         count[-1] = count[-2]
         A += 0.5 * (r**2 - r)*sp.csr_matrix((data,index,count),shape = (NN,NN))
         # A = hyperbolic_lax_wendroff(pde.a(), tau)
+        A = mesh.hyperbolic_operator_lax_wendroff(pde.a(), tau)
 
 
         uh_0 = uh0[0] + 2*tau/hx*(uh0[1] - uh0[0])
