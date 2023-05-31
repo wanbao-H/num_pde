@@ -49,7 +49,7 @@ def hyperbolic_lax_wendroff(a, tau):
     r = a*tau/hx
 
     if r > 1.0:
-        raise ValueError(f"The r: {r} should be smaller than 0.5")
+        raise ValueError(f"The r: {r} should be smaller than 1.0")
 
     NN = mesh.number_of_nodes()
     k = np.arange(NN)
