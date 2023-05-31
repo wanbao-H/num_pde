@@ -6,9 +6,6 @@ from scipy.sparse import spdiags
 from scipy.sparse import diags, csr_matrix
 import scipy.sparse as sp
 
-# from real_pde.apply_dirichlet_neumann_bc import redefian_apply_dirichlet_bc
-# from fealpy.pde.hyperbolic_1d import Hyperbolic1dPDEData
-
 class PdeData:
     def __init__(self, D:Union[Tuple[int,int],List[int]]= (0,2), T:Union[Tuple[int, int],List[int]]= (0,1)) -> None:
         self._domain =  D
@@ -42,11 +39,33 @@ class PdeData:
         
         return -2 
     
-def hyperbolic_lax_wendroff(a, tau):
+def hyperbolic_lax_wendroff_1(mesh,a, tau):
     """
     @brief Lax-Wendroff 格式
     """
-    r = a*tau/hx
+    r = a*tau/mesh.h
+
+    if r > 1.0:
+        raise ValueError(f"The r: {r} should be smaller than 1.0")
+
+    NN = mesh.number_of_nodes()
+    k = np.arange(NN)
+
+    A = diags([1 - r**2], [0], shape=(NN, NN), format='csr')
+    val0 = np.broadcast_to(-r/2 + r**2/2, (NN-1, ))
+    val1 = np.broadcast_to(r/2 + r**2/2, (NN-1, ))
+    I = k[1:]
+    J = k[0:-1]
+    A += sp.csr_matrix((val0, (I, J)), shape=(NN, NN), dtype=mesh.ftype)
+    A += sp.csr_matrix((val1, (J, I)), shape=(NN, NN), dtype=mesh.ftype)
+
+    return A
+    
+def hyperbolic_lax_wendroff_2(mesh,a, tau):
+    """
+    @brief Lax-Wendroff 格式
+    """
+    r = a*tau/mesh.h
 
     if r > 1.0:
         raise ValueError(f"The r: {r} should be smaller than 1.0")
@@ -65,14 +84,13 @@ def hyperbolic_lax_wendroff(a, tau):
     return A
 
 pde = PdeData()
-# pde = Hyperbolic1dPDEData()
 domain = pde.domain()
 duration = pde.duration()
 
-nx = 8
+nx = 800
 hx = (domain[1]-domain[0])/nx
 
-nt = 64
+nt = 6400
 tau = (duration[1]-duration[0])/nt
 
 mesh = UniformMesh1d([0, nx], h=hx, origin=domain[0])
@@ -83,24 +101,15 @@ error = np.zeros(nt+1)
 solution = lambda p: pde.solution(p,0)
 error[0] = mesh.error(solution,uh0,errortype = 'max')
 T = np.zeros(nt+1)
-def hyperbolic_lax(n):
+
+def hyperbolic_lax_wendroff(n):
     t = duration[0] + n*tau
     if n == 0:
         return uh0,t
     else:
         r = pde.a() * tau / hx
-        # NN = mesh.number_of_nodes()
-        # A = diags([1- r**2], [0], shape = (NN, NN), format='csr')
-        # data = np.ones(NN-1)
-        # index = np.arange(NN-1)
-        # count = np.append(0,np.arange(NN))
-        # A += 0.5 * (r**2 + r)*sp.csr_matrix((data,index,count),shape = (NN,NN))
-        # index = np.arange(NN)[1:]
-        # count = np.arange(NN+1)
-        # count[-1] = count[-2]
-        # A += 0.5 * (r**2 - r)*sp.csr_matrix((data,index,count),shape = (NN,NN))
-        # A = hyperbolic_lax_wendroff(pde.a(), tau)
-        A = mesh.hyperbolic_operator_lax_wendroff(pde.a(), tau)
+        # A = hyperbolic_lax_wendroff_1(mesh, pde.a(), tau)
+        A = hyperbolic_lax_wendroff_2(mesh, pde.a(), tau)
 
 
         uh_0 = uh0[0] + 2*tau/hx*(uh0[1] - uh0[0])
@@ -110,9 +119,9 @@ def hyperbolic_lax(n):
 
         gD = lambda p: pde.dirichlet(p,t)
         mesh.update_dirichlet_bc(gD, uh0)
-        # uh0[0] = uh_0 # a
+        uh0[0] = uh_0 # a
 
-        uh0[0] = 2*uh0[1] - uh0[2] # c
+        # uh0[0] = 2*uh0[1] - uh0[2] # c
 
 
         solution = lambda p: pde.solution(p,t)
@@ -121,10 +130,10 @@ def hyperbolic_lax(n):
         T[n] = t
         print(f"the max error is {e}")
         return uh0, t
-
+    
 box = [0,2,0,2]
 fig, axes = plt.subplots()
-mesh.show_animation(fig, axes, box, hyperbolic_lax, frames=nt+1)
+mesh.show_animation(fig, axes, box, hyperbolic_lax_wendroff, frames=nt+1)
 
 ax2 = plt.figure()
 plt.plot(T,error)
@@ -133,6 +142,3 @@ plt.ylim()
 plt.xlabel('t')
 plt.ylabel('max_error')
 plt.show()
-# for n in range(10000):
-#     hyperbolic_lax(n)
-
