@@ -20,7 +20,7 @@ mesh = TriangleMesh(node, cell)
 mesh.uniform_refine(n=1)
 
 area = mesh.entity_measure('cell')
-length = mesh.entit_measure('edge')
+length = mesh.entity_measure('edge')
 
 bc = mesh.entity_barycenter('cell')
 md = mesh.entity_barycenter('edge')
