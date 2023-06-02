@@ -69,10 +69,10 @@ pde = PdeData()
 domain = pde.domain()
 duration = pde.duration()
 
-nx = 8
+nx = 800
 hx = (domain[1]-domain[0])/nx
 
-nt = 64
+nt = 6400
 tau = (duration[1]-duration[0])/nt
 
 mesh = UniformMesh1d([0, nx], h=hx, origin=domain[0])
