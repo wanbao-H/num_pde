@@ -29,6 +29,14 @@ class model_Data:
         
         return np.cos(np.pi*p) + 3
 
+pde = model_Data()
+domain = pde.domain()
+
+# 测试
+print('domain :', domain)
+print(np.abs(pde.solution(0)) < 1e-12)
+print(np.abs(pde.solution(1)) < 1e-12)
+print(np.abs(pde.solution(1/8) - 1) < 1e-12)
 nx = 2 
 maxit = 4
 #ipdb.set_trace()
@@ -36,7 +44,6 @@ pde = model_Data()
 domain = pde.domain()
 em = np.zeros((3, maxit), dtype=np.float64)
 fig, axes = plt.subplots()
-lines = []  # 存储每个曲线
 for i in range(maxit):
     nx *= 2
     hx = (domain[1] - domain[0])/nx
