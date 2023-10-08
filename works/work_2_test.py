@@ -76,4 +76,6 @@ for i in range(maxit):
 print(em[:, 0:-1]/em[:, 1:])
 axes.plot(node, pde.solution(node), label = 'Exact solution')
 axes.legend()
+axes.set_xlabel("x")
+axes.set_ylabel("u")
 plt.show()
